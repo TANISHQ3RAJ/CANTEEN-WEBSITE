@@ -140,6 +140,15 @@ const TrackOrder = () => {
               <p className="text-sm text-gray-500 font-medium mb-1">Order ID</p>
               <h2 className="text-2xl font-mono font-bold">{order.orderId}</h2>
             </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-500 font-medium mb-1">Placed On</p>
+              <h2 className="text-lg font-bold">
+                {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Today'}
+                <span className="block text-xs font-normal text-gray-400">
+                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                </span>
+              </h2>
+            </div>
             <div className="text-right">
               <p className="text-sm text-gray-500 font-medium mb-1">Amount</p>
               <h2 className="text-2xl font-bold text-primary">₹{order.totalAmount}</h2>

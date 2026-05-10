@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ChefHat, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 
 const Kitchen = () => {
   const [orders, setOrders] = useState([]);
@@ -28,14 +29,36 @@ const Kitchen = () => {
     }
   };
 
-  const advanceStatus = (order) => {
+  const advanceStatus = async (order) => {
+    let newStatus = order.status;
     if (order.status === 'Pending') newStatus = 'Preparing';
     else if (order.status === 'Preparing') newStatus = 'Ready';
 
+    // 1. Update Local Storage
     const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]');
     const updated = localOrders.map(o => o.orderId === order.orderId ? { ...o, status: newStatus } : o);
     localStorage.setItem('canteen_orders', JSON.stringify(updated));
     
+    // 2. Update Supabase if possible
+    try {
+      // Try to find by id (uuid) or order_id
+      const idToUpdate = order._id || order.id;
+      if (idToUpdate && typeof idToUpdate !== 'string' || (typeof idToUpdate === 'string' && !idToUpdate.startsWith('ORD'))) {
+        await supabase
+          .from('orders')
+          .update({ status: newStatus })
+          .eq('id', idToUpdate);
+      } else {
+        // Try updating by order_id string
+        await supabase
+          .from('orders')
+          .update({ status: newStatus })
+          .eq('order_id', order.orderId);
+      }
+    } catch (err) {
+      console.error("Supabase sync failed:", err);
+    }
+
     setOrders(updated.filter(o => o.status !== 'Completed' && o.status !== 'Ready'));
   };
 
@@ -84,7 +107,8 @@ const Kitchen = () => {
 };
 
 const OrderCard = ({ order, onAdvance, btnText, btnColor }) => {
-  const timeStr = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const date = order.createdAt ? new Date(order.createdAt) : new Date();
+  const timeStr = isNaN(date.getTime()) ? 'Recently' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
