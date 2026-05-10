@@ -57,10 +57,15 @@ const TrackOrder = () => {
   };
 
   const getStepStatus = (stepName) => {
-    if (!order) return 'pending';
     if (order.status === 'Completed') return 'completed';
-    if (order.status === 'Preparing' && stepName === 'Placed') return 'completed';
-    if (order.status === 'Preparing' && stepName === 'Preparing') return 'current';
+    if (order.status === 'Ready') {
+      if (stepName === 'Placed' || stepName === 'Preparing') return 'completed';
+      if (stepName === 'Ready') return 'current';
+    }
+    if (order.status === 'Preparing') {
+      if (stepName === 'Placed') return 'completed';
+      if (stepName === 'Preparing') return 'current';
+    }
     if (order.status === 'Pending' && stepName === 'Placed') return 'current';
     return 'pending';
   };
@@ -146,6 +151,7 @@ const TrackOrder = () => {
             <div className="absolute top-8 left-[10%] right-[10%] h-1 bg-gray-100 -z-10 rounded-full"></div>
             <div className={`absolute top-8 left-[10%] h-1 -z-10 rounded-full transition-all duration-500 ${
               order.status === 'Completed' ? 'w-[80%] bg-green-400' : 
+              order.status === 'Ready' ? 'w-[80%] bg-blue-400' : 
               order.status === 'Preparing' ? 'w-[40%] bg-primary/50' : 
               'w-0'
             }`}></div>

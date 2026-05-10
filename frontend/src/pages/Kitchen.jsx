@@ -18,8 +18,8 @@ const Kitchen = () => {
       // In a real app with working backend, we'd fetch from /api/orders
       // Since order placement falls back to local storage in Checkout.jsx, we will read from local storage here
       const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]');
-      // Filter out completed ones for the kitchen display
-      const activeOrders = localOrders.filter(o => o.status !== 'Completed');
+      // Filter out completed and ready ones for the kitchen display
+      const activeOrders = localOrders.filter(o => o.status !== 'Completed' && o.status !== 'Ready');
       setOrders(activeOrders);
     } catch (err) {
       console.error(err);
@@ -29,16 +29,14 @@ const Kitchen = () => {
   };
 
   const advanceStatus = (order) => {
-    let newStatus = 'Pending';
     if (order.status === 'Pending') newStatus = 'Preparing';
     else if (order.status === 'Preparing') newStatus = 'Ready';
-    else if (order.status === 'Ready') newStatus = 'Completed';
 
     const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]');
     const updated = localOrders.map(o => o.orderId === order.orderId ? { ...o, status: newStatus } : o);
     localStorage.setItem('canteen_orders', JSON.stringify(updated));
     
-    setOrders(updated.filter(o => o.status !== 'Completed'));
+    setOrders(updated.filter(o => o.status !== 'Completed' && o.status !== 'Ready'));
   };
 
   return (
@@ -56,7 +54,7 @@ const Kitchen = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pending Column */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -77,18 +75,6 @@ const Kitchen = () => {
           <div className="space-y-4">
             {orders.filter(o => o.status === 'Preparing').map(order => (
               <OrderCard key={order.orderId} order={order} onAdvance={() => advanceStatus(order)} btnText="Mark Ready" btnColor="bg-blue-500 hover:bg-blue-600" />
-            ))}
-          </div>
-        </div>
-
-        {/* Ready Column */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-green-500"></span> Ready
-          </h2>
-          <div className="space-y-4">
-            {orders.filter(o => o.status === 'Ready').map(order => (
-              <OrderCard key={order.orderId} order={order} onAdvance={() => advanceStatus(order)} btnText="Complete" btnColor="bg-green-500 hover:bg-green-600" />
             ))}
           </div>
         </div>

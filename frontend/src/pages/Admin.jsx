@@ -207,24 +207,29 @@ const OrderTable = ({ orders, onMarkDone, showAction = true }) => (
                 <td className="p-4 font-bold text-gray-900">₹{order.totalAmount}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    order.status === 'Completed'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-orange-100 text-orange-700'
+                    order.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                    order.status === 'Ready' ? 'bg-blue-100 text-blue-700' :
+                    order.status === 'Preparing' ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-700'
                   }`}>
                     {order.status === 'Completed' ? <CheckCircle size={12} /> : <Clock size={12} />}
                     {order.status}
                   </span>
                 </td>
-                {showAction && (
                   <td className="p-4 text-right">
                     <button
-                      onClick={() => onMarkDone(order._id)}
-                      className="bg-gray-900 text-white text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+                      onClick={() => onMarkDone(order._id || order.orderId)}
+                      disabled={order.status !== 'Ready'}
+                      className={`text-xs font-bold px-4 py-1.5 rounded-lg transition-colors ${
+                        order.status === 'Ready' 
+                          ? 'bg-green-600 text-white hover:bg-green-700' 
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={order.status !== 'Ready' ? "Waiting for kitchen to mark as Ready" : "Click to complete order"}
                     >
-                      ✓ Mark Done
+                      {order.status === 'Ready' ? '✓ Mark Done' : 'Waiting...'}
                     </button>
                   </td>
-                )}
               </tr>
             ))
           )}
