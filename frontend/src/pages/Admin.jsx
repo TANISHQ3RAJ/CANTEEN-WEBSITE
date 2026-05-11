@@ -216,20 +216,22 @@ const OrderTable = ({ orders, onMarkDone, showAction = true }) => (
                     {order.status}
                   </span>
                 </td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() => onMarkDone(order._id || order.orderId)}
-                      disabled={order.status !== 'Ready'}
-                      className={`text-xs font-bold px-4 py-1.5 rounded-lg transition-colors ${
-                        order.status === 'Ready' 
-                          ? 'bg-green-600 text-white hover:bg-green-700' 
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                      title={order.status !== 'Ready' ? "Waiting for kitchen to mark as Ready" : "Click to complete order"}
-                    >
-                      {order.status === 'Ready' ? '✓ Mark Done' : 'Waiting...'}
-                    </button>
-                  </td>
+                  {showAction && (
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => onMarkDone(order._id || order.orderId)}
+                        disabled={order.status !== 'Ready'}
+                        className={`text-xs font-bold px-4 py-1.5 rounded-lg transition-colors ${
+                          order.status === 'Ready' 
+                            ? 'bg-green-600 text-white hover:bg-green-700' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                        title={order.status !== 'Ready' ? "Waiting for kitchen to mark as Ready" : "Click to complete order"}
+                      >
+                        {order.status === 'Ready' ? '✓ Mark Done' : 'Waiting...'}
+                      </button>
+                    </td>
+                  )}
               </tr>
             ))
           )}
