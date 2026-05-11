@@ -199,12 +199,18 @@ const OrderTable = ({ orders, onMarkDone, showAction = true }) => (
             </tr>
           ) : (
             orders.map((order) => (
-              <tr key={order._id || order.id || order.order_id || order.orderId} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                <td className="p-4 font-mono font-medium text-gray-800">{order.orderId || order.order_id}</td>
-                <td className="p-4 text-sm text-gray-600">
-                  {order.items && Array.isArray(order.items) ? order.items.map(item => `${item.quantity}x ${item.name}`).join(', ') : 'No items'}
+              <tr key={order._id || order.id || order.order_id || order.orderId || Math.random()} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                <td className="p-4 font-mono font-medium text-gray-800">
+                  {order.orderId || order.order_id || order._id || order.id || 'N/A'}
                 </td>
-                <td className="p-4 font-bold text-gray-900">₹{order.totalAmount || order.total_amount}</td>
+                <td className="p-4 text-sm text-gray-600">
+                  {order.items && Array.isArray(order.items) 
+                    ? order.items.map(item => `${item.quantity || 1}x ${item.name || 'Item'}`).join(', ') 
+                    : 'No items'}
+                </td>
+                <td className="p-4 font-bold text-gray-900">
+                  ₹{order.totalAmount || order.total_amount || order.amount || order.total || 0}
+                </td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                     order.status === 'Completed' ? 'bg-green-100 text-green-700' :
