@@ -150,15 +150,17 @@ const OrderCard = ({ order, onAdvance, btnText, btnColor }) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
       <div className="flex justify-between items-start mb-3">
-        <span className="font-mono font-bold text-lg text-gray-900">{order.orderId || order.order_id}</span>
+        <span className="font-mono font-bold text-lg text-gray-900">
+          {order.orderId || order.order_id || order.id || order._id || 'N/A'}
+        </span>
         <span className="text-xs font-medium text-gray-500 flex items-center gap-1"><Clock size={12}/> {timeStr}</span>
       </div>
       <ul className="mb-4 space-y-1">
-        {order.items.map((item, idx) => (
+        {order.items && Array.isArray(order.items) ? order.items.map((item, idx) => (
           <li key={idx} className="text-sm font-medium text-gray-700 flex justify-between">
-            <span>{item.quantity}x {item.name}</span>
+            <span>{item.quantity || 1}x {item.name || 'Item'}</span>
           </li>
-        ))}
+        )) : <li className="text-sm text-gray-400 italic">No items details</li>}
       </ul>
       <button onClick={onAdvance} className={`w-full py-2 rounded-lg text-white font-bold text-sm transition-colors ${btnColor}`}>
         {btnText}

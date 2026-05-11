@@ -308,15 +308,22 @@ const Admin = () => {
       
       if (data && data.length > 0) {
         // Map snake_case back to camelCase for the frontend UI
-        const formattedOrders = data.map(o => ({
-          _id: o.id,
-          orderId: o.order_id,
-          status: o.status,
-          totalAmount: o.total_amount,
-          items: o.items,
-          createdAt: o.created_at,
-          upiRef: o.upi_ref
-        }));
+        const formattedOrders = data.map(o => {
+          // Robustly identify ID and Amount from whatever Supabase returns
+          const resolvedId = o.order_id || o.orderId || o.id || o._id;
+          const resolvedAmount = o.total_amount || o.totalAmount || o.amount || o.total || 0;
+          
+          return {
+            ...o, // Keep original properties as backup
+            _id: o.id || o._id,
+            orderId: resolvedId,
+            status: o.status,
+            totalAmount: resolvedAmount,
+            items: o.items,
+            createdAt: o.created_at || o.createdAt,
+            upiRef: o.upi_ref || o.upiRef
+          };
+        });
         setOrders(formattedOrders);
       } else {
         // Use local storage fallback if Supabase table is empty or fails
