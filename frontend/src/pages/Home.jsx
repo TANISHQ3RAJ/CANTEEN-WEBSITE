@@ -232,6 +232,11 @@ const Home = () => {
         </div>
       </section>
 
+      <OrderQueueSection />
+    </div>
+  );
+};
+
 const OrderQueueSection = () => {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
