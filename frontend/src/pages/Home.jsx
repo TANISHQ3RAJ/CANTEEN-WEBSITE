@@ -269,7 +269,8 @@ const OrderQueueSection = () => {
       // 3. Merge (prioritize Supabase if IDs match)
       const mergedQueue = [...formattedSb];
       localOrders.forEach(lo => {
-        if (!mergedQueue.find(so => so.orderId === lo.orderId)) {
+        const loId = lo.orderId || lo.order_id;
+        if (!mergedQueue.find(so => (so.orderId || so.order_id) === loId)) {
           mergedQueue.push(lo);
         }
       });

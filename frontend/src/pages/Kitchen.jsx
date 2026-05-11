@@ -51,7 +51,8 @@ const Kitchen = () => {
       // 3. Merge (prioritize Supabase if IDs match)
       const allOrders = [...formattedSb];
       localOrders.forEach(lo => {
-        if (!allOrders.find(so => so.orderId === lo.orderId)) {
+        const loId = lo.orderId || lo.order_id;
+        if (!allOrders.find(so => (so.orderId || so.order_id) === loId)) {
           allOrders.push(lo);
         }
       });
@@ -149,7 +150,7 @@ const OrderCard = ({ order, onAdvance, btnText, btnColor }) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
       <div className="flex justify-between items-start mb-3">
-        <span className="font-mono font-bold text-lg text-gray-900">{order.orderId}</span>
+        <span className="font-mono font-bold text-lg text-gray-900">{order.orderId || order.order_id}</span>
         <span className="text-xs font-medium text-gray-500 flex items-center gap-1"><Clock size={12}/> {timeStr}</span>
       </div>
       <ul className="mb-4 space-y-1">
