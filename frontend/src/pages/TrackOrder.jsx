@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, ChefHat, CheckCircle, Truck, XCircle, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -8,6 +8,29 @@ const TrackOrder = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Real-time subscription for the current order
+  useEffect(() => {
+    if (!order?.orderId) return;
+
+    const subscription = supabase
+      .channel(`order_status_${order.orderId}`)
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `order_id=eq.${order.orderId}` }, 
+        (payload) => {
+          console.log("Order updated:", payload.new);
+          setOrder(prev => ({
+            ...prev,
+            status: payload.new.status
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [order?.orderId]);
 
   const handleTrack = async (e) => {
     e.preventDefault();

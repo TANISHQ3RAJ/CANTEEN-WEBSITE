@@ -10,17 +10,54 @@ const Kitchen = () => {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10s
-    return () => clearInterval(interval);
+
+    // Subscribe to realtime changes in Supabase
+    const ordersSubscription = supabase
+      .channel('public:kitchen_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersSubscription);
+    };
   }, []);
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
-      // In a real app with working backend, we'd fetch from /api/orders
-      // Since order placement falls back to local storage in Checkout.jsx, we will read from local storage here
+      // 1. Fetch from Supabase
+      const { data: sbOrders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      let formattedSb = [];
+      if (!error && sbOrders) {
+        formattedSb = sbOrders.map(o => ({
+          _id: o.id,
+          orderId: o.order_id,
+          status: o.status,
+          totalAmount: o.total_amount,
+          items: o.items,
+          createdAt: o.created_at
+        }));
+      }
+
+      // 2. Fetch from Local Storage
       const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]');
+      
+      // 3. Merge (prioritize Supabase if IDs match)
+      const allOrders = [...formattedSb];
+      localOrders.forEach(lo => {
+        if (!allOrders.find(so => so.orderId === lo.orderId)) {
+          allOrders.push(lo);
+        }
+      });
+
       // Filter out completed and ready ones for the kitchen display
-      const activeOrders = localOrders.filter(o => o.status !== 'Completed' && o.status !== 'Ready');
+      const activeOrders = allOrders.filter(o => o.status !== 'Completed' && o.status !== 'Ready');
       setOrders(activeOrders);
     } catch (err) {
       console.error(err);
@@ -34,22 +71,23 @@ const Kitchen = () => {
     if (order.status === 'Pending') newStatus = 'Preparing';
     else if (order.status === 'Preparing') newStatus = 'Ready';
 
-    // 1. Update Local Storage
+    // Optimistically update UI
+    setOrders(prev => prev.map(o => o.orderId === order.orderId ? { ...o, status: newStatus } : o).filter(o => o.status !== 'Completed' && o.status !== 'Ready'));
+
+    // 1. Update Local Storage (always good to have for same-device fallback)
     const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]');
-    const updated = localOrders.map(o => o.orderId === order.orderId ? { ...o, status: newStatus } : o);
-    localStorage.setItem('canteen_orders', JSON.stringify(updated));
+    const updatedLocal = localOrders.map(o => o.orderId === order.orderId ? { ...o, status: newStatus } : o);
+    localStorage.setItem('canteen_orders', JSON.stringify(updatedLocal));
     
-    // 2. Update Supabase if possible
+    // 2. Update Supabase
     try {
-      // Try to find by id (uuid) or order_id
       const idToUpdate = order._id || order.id;
-      if (idToUpdate && typeof idToUpdate !== 'string' || (typeof idToUpdate === 'string' && !idToUpdate.startsWith('ORD'))) {
+      if (idToUpdate && (typeof idToUpdate !== 'string' || !idToUpdate.startsWith('ORD'))) {
         await supabase
           .from('orders')
           .update({ status: newStatus })
           .eq('id', idToUpdate);
       } else {
-        // Try updating by order_id string
         await supabase
           .from('orders')
           .update({ status: newStatus })
@@ -58,8 +96,6 @@ const Kitchen = () => {
     } catch (err) {
       console.error("Supabase sync failed:", err);
     }
-
-    setOrders(updated.filter(o => o.status !== 'Completed' && o.status !== 'Ready'));
   };
 
   return (
