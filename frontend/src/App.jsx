@@ -12,6 +12,7 @@ import Kitchen from './pages/Kitchen';
 import Billing from './pages/Billing';
 import Vendors from './pages/Vendors';
 import Reports from './pages/Reports';
+import Feedback from './pages/Feedback';
 import { CartProvider } from './context/CartContext';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               <Route path="/billing" element={<Billing />} />
               <Route path="/vendors" element={<Vendors />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/feedback" element={<Feedback />} />
             </Routes>
           </main>
         </div>

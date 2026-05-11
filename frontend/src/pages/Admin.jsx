@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, CheckCircle, Clock, ShoppingBag, PackageCheck, Lock, Eye, EyeOff, LogOut, ShieldCheck, Archive, Trash2 } from 'lucide-react';
+import { RefreshCw, CheckCircle, Clock, ShoppingBag, PackageCheck, Lock, Eye, EyeOff, LogOut, ShieldCheck, Archive, Trash2, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // ── Credentials (frontend guard — workshop use only) ──────────
@@ -401,7 +401,7 @@ const Admin = () => {
       </div>
 
       {/* Admin Modules Quick Links */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <a href="/inventory" className="bg-white border border-gray-200 p-4 rounded-xl flex flex-col items-center justify-center gap-2 hover:shadow-md transition-shadow">
           <PackageCheck size={24} className="text-blue-500" />
           <span className="font-semibold text-sm">Inventory</span>
@@ -421,6 +421,10 @@ const Admin = () => {
         <a href="/reports" className="bg-white border border-gray-200 p-4 rounded-xl flex flex-col items-center justify-center gap-2 hover:shadow-md transition-shadow">
           <Eye size={24} className="text-indigo-500" />
           <span className="font-semibold text-sm">Reports</span>
+        </a>
+        <a href="/feedback" className="bg-white border border-gray-200 p-4 rounded-xl flex flex-col items-center justify-center gap-2 hover:shadow-md transition-shadow">
+          <MessageSquare size={24} className="text-primary" />
+          <span className="font-semibold text-sm">Feedback</span>
         </a>
       </div>
 
