@@ -232,171 +232,167 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ── LIVE QUEUE SECTION ──────────────────────────── */}
-      <section style={{ padding: '0 5vw 100px' }}>
+const OrderQueueSection = () => {
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchQueueData = async () => {
+    try {
+      // 1. Fetch from Supabase
+      const { data: sbData, error } = await supabase
+        .from('orders')
+        .select('id, order_id, status, created_at, items, total_amount')
+        .neq('status', 'Completed')
+        .order('created_at', { ascending: true });
+
+      let formattedSb = [];
+      if (!error && sbData) {
+        formattedSb = sbData.map(o => ({
+          _id: o.id,
+          orderId: o.order_id,
+          status: o.status,
+          totalAmount: o.total_amount,
+          items: o.items,
+          createdAt: o.created_at
+        }));
+      }
+
+      // 2. Fetch from Local Storage
+      const localOrders = JSON.parse(localStorage.getItem('canteen_orders') || '[]')
+        .filter(o => o.status !== 'Completed');
+      
+      // 3. Merge (prioritize Supabase if IDs match)
+      const mergedQueue = [...formattedSb];
+      localOrders.forEach(lo => {
+        if (!mergedQueue.find(so => so.orderId === lo.orderId)) {
+          mergedQueue.push(lo);
+        }
+      });
+
+      // Sort by creation time (ascending)
+      mergedQueue.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      
+      setQueue(mergedQueue);
+    } catch (err) {
+      console.error("Queue fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueueData();
+
+    // Subscribe to realtime changes
+    const subscription = supabase
+      .channel('public:orders_queue')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
+        fetchQueueData();
+      })
+      .subscribe();
+
+    // Also poll as backup for local storage changes
+    const interval = setInterval(fetchQueueData, 10000);
+
+    return () => {
+      supabase.removeChannel(subscription);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const activeCount = queue.length;
+  const waitTime = activeCount * 5;
+
+  return (
+    <section style={{ padding: '0 5vw 100px' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
+        borderRadius: 32,
+        padding: '40px',
+        color: '#fff',
+        display: 'flex',
+        gap: 40,
+        boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
+        overflow: 'hidden',
+        position: 'relative'
+      }} className="flex-col md:flex-row">
+        
         <div style={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)',
-          borderRadius: 32,
-          padding: '40px',
-          color: '#fff',
-          display: 'flex',
-          gap: 40,
-          boxShadow: '0 24px 48px rgba(0,0,0,0.15)',
-          overflow: 'hidden',
-          position: 'relative'
-        }} className="flex-col md:flex-row">
-          
-          {/* Background Decorative element */}
-          <div style={{
-            position: 'absolute', top: '-10%', right: '-5%', width: 200, height: 200,
-            background: 'rgba(232, 64, 37, 0.1)', borderRadius: '50%', filter: 'blur(60px)'
-          }}></div>
+          position: 'absolute', top: '-10%', right: '-5%', width: 200, height: 200,
+          background: 'rgba(232, 64, 37, 0.1)', borderRadius: '50%', filter: 'blur(60px)'
+        }}></div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ padding: 8, background: 'rgba(232, 64, 37, 0.2)', borderRadius: 12 }}>
-                <Timer color="#E84025" size={24} />
-              </div>
-              <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>Live Order Queue</h2>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ padding: 8, background: 'rgba(232, 64, 37, 0.2)', borderRadius: 12 }}>
+              <Timer color="#E84025" size={24} />
             </div>
-            <p style={{ color: '#aaa', fontSize: 15, lineHeight: 1.6, maxWidth: 400, marginBottom: 32 }}>
-              Check current campus demand and see how long it might take for your fresh meal to arrive.
-            </p>
-
-            <div style={{ display: 'flex', gap: 24 }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 12, textTransform: 'uppercase' }}>
-                  Wait Time
-                </p>
-                <QueueWaitTime />
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 12, textTransform: 'uppercase' }}>
-                  Orders Ahead
-                </p>
-                <QueueOrderCount />
-              </div>
-            </div>
+            <h2 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>Live Order Queue</h2>
           </div>
+          <p style={{ color: '#aaa', fontSize: 15, lineHeight: 1.6, maxWidth: 400, marginBottom: 32 }}>
+            Check current campus demand and see how long it might take for your fresh meal to arrive.
+          </p>
 
-          <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
-             <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 20, textTransform: 'uppercase' }}>
-                Active Orders in Kitchen
+          <div style={{ display: 'flex', gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 12, textTransform: 'uppercase' }}>
+                Wait Time
               </p>
-              <LiveQueueList />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 36, fontWeight: 900, color: '#E84025' }}>~{waitTime}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>mins</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 12, textTransform: 'uppercase' }}>
+                Orders Ahead
+              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 36, fontWeight: 900, color: '#fff' }}>{activeCount}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#666' }}>active</span>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
 
-    </div>
-  );
-};
-
-const QueueWaitTime = () => {
-  const [time, setTime] = useState(0);
-  
-  useEffect(() => {
-    const fetchTime = async () => {
-      try {
-        const { data } = await supabase.from('orders').select('status').neq('status', 'Completed');
-        const count = data?.length || JSON.parse(localStorage.getItem('canteen_orders') || '[]').filter(o => o.status !== 'Completed').length;
-        setTime(count * 5); // 5 mins per order
-      } catch { setTime(0); }
-    };
-    fetchTime();
-    const inv = setInterval(fetchTime, 30000);
-    return () => clearInterval(inv);
-  }, []);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-      <span style={{ fontSize: 36, fontWeight: 900, color: '#E84025' }}>~{time}</span>
-      <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>mins</span>
-    </div>
-  );
-};
-
-const QueueOrderCount = () => {
-  const [count, setCount] = useState(0);
-  
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const { data } = await supabase.from('orders').select('status').neq('status', 'Completed');
-        const c = data?.length || JSON.parse(localStorage.getItem('canteen_orders') || '[]').filter(o => o.status !== 'Completed').length;
-        setCount(c);
-      } catch { setCount(0); }
-    };
-    fetchCount();
-    const inv = setInterval(fetchCount, 30000);
-    return () => clearInterval(inv);
-  }, []);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-      <span style={{ fontSize: 36, fontWeight: 900, color: '#fff' }}>{count}</span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#666' }}>active</span>
-    </div>
-  );
-};
-
-const LiveQueueList = () => {
-  const [queue, setQueue] = useState([]);
-
-  useEffect(() => {
-    const fetchQueue = async () => {
-      try {
-        const { data } = await supabase
-          .from('orders')
-          .select('order_id, status')
-          .neq('status', 'Completed')
-          .order('created_at', { ascending: true })
-          .limit(5);
-        
-        if (data && data.length > 0) {
-          setQueue(data);
-        } else {
-          const local = JSON.parse(localStorage.getItem('canteen_orders') || '[]')
-            .filter(o => o.status !== 'Completed')
-            .slice(0, 5);
-          setQueue(local);
-        }
-      } catch { setQueue([]); }
-    };
-    fetchQueue();
-    const inv = setInterval(fetchQueue, 30000);
-    return () => clearInterval(inv);
-  }, []);
-
-  if (queue.length === 0) return <p style={{ color: '#444', fontSize: 14 }}>Kitchen is currently empty.</p>;
-
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-      {queue.map((item, i) => (
-        <motion.div
-          key={item.order_id || item.orderId}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
-          style={{
-            background: item.status === 'Ready' ? '#E84025' : 'rgba(255,255,255,0.05)',
-            padding: '8px 14px',
-            borderRadius: 12,
-            fontSize: 13,
-            fontWeight: 800,
-            fontFamily: 'monospace',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#fff'
-          }}
-        >
-          {item.order_id || item.orderId}
-          <span style={{ display: 'block', fontSize: 9, fontWeight: 600, opacity: 0.6, marginTop: 2, textTransform: 'uppercase' }}>
-            {item.status}
-          </span>
-        </motion.div>
-      ))}
-      {queue.length >= 5 && <div style={{ fontSize: 12, color: '#444', padding: '8px' }}>+ more</div>}
-    </div>
+        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+           <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1.5, marginBottom: 20, textTransform: 'uppercase' }}>
+              Active Orders in Kitchen
+            </p>
+            
+            {activeCount === 0 ? (
+              <p style={{ color: '#444', fontSize: 14 }}>Kitchen is currently empty.</p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {queue.slice(0, 5).map((item, i) => (
+                  <motion.div
+                    key={item.orderId}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    style={{
+                      background: item.status === 'Ready' ? '#E84025' : 'rgba(255,255,255,0.05)',
+                      padding: '8px 14px',
+                      borderRadius: 12,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#fff'
+                    }}
+                  >
+                    {item.orderId}
+                    <span style={{ display: 'block', fontSize: 9, fontWeight: 600, opacity: 0.6, marginTop: 2, textTransform: 'uppercase' }}>
+                      {item.status}
+                    </span>
+                  </motion.div>
+                ))}
+                {activeCount > 5 && <div style={{ fontSize: 12, color: '#444', padding: '8px' }}>+ {activeCount - 5} more</div>}
+              </div>
+            )}
+        </div>
+      </div>
+    </section>
   );
 };
 
